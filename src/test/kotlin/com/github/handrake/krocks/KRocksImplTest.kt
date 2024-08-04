@@ -22,6 +22,13 @@ internal class KRocksImplTest {
         assertEquals(v, store.get(k))
     }
 
+    @Test
+    fun getsetKorean() {
+        val (k, v) = "하나" to "둘"
+        store.set(k, v)
+        assertEquals(v, store.get(k))
+    }
+
     @AfterAll
     fun tearDown() {
         store.close()
