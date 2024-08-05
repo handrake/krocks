@@ -28,12 +28,28 @@ class KRocksImpl : KRocks {
         }.getOrNull()
     }
 
+    override fun sadd(key: String, member: String) {
+        db.put(buildSetKey(key, member).toByteArray(CHARSET), "1".toByteArray(CHARSET))
+    }
+
+    override fun srem(key: String, member: String) {
+        db.delete(buildSetKey(key, member).toByteArray(CHARSET))
+    }
+
+    override fun sismember(key: String, member: String): Boolean {
+        return db.get(buildSetKey(key, member).toByteArray(CHARSET)) != null
+    }
+
     override fun close() {
         db.close()
     }
 
     override fun destroy() {
         RocksDB.destroyDB(path, options)
+    }
+
+    private fun buildSetKey(key: String, member: String): String {
+        return "KRocks:Set:$key:$member"
     }
 
     companion object {
