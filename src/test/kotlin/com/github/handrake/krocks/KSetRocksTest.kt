@@ -39,6 +39,25 @@ internal class KSetRocksTest {
         assertEquals(100, kset.scard("0"))
     }
 
+    @Test
+    fun testSUnion() {
+        for (i in 0 until 10) {
+            kset.sadd("0", i.toString())
+        }
+
+        for (i in 10 until 20) {
+            kset.sadd("1", i.toString())
+        }
+
+        for (i in 20..30) {
+            kset.sadd("2", i.toString())
+        }
+
+        val result = kset.sunion("0", "1", "2").map { it.toInt() }.toSet()
+
+        assertEquals((0..30).toSet(), result)
+    }
+
     @AfterAll
     fun tearDown() {
         store.close()
