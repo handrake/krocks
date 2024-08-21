@@ -1,16 +1,20 @@
 package com.github.handrake.krocks
 
+import org.rocksdb.OptimisticTransactionDB
 import org.rocksdb.Options
+import org.rocksdb.ReadOptions
 import org.rocksdb.RocksDB
+import org.rocksdb.Transaction
 
 class KRocksDB(private val path: String) {
-    val underlying: RocksDB
+    val underlying: OptimisticTransactionDB
     private val options: Options = Options()
 
     init {
         this.options.setCreateIfMissing(true)
         this.options.setCreateMissingColumnFamilies(true)
-        this.underlying = RocksDB.open(options, path)
+
+        this.underlying = OptimisticTransactionDB.open(options, path)
     }
 
     fun set(key: String, value: String) {
