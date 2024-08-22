@@ -26,31 +26,29 @@ class KListRocks(private val db: KRocksDB) {
     }
 
     fun lpush(key: String, vararg elements: String) {
-        val writeOptions = WriteOptions()
-        val transaction = db.underlying.beginTransaction(writeOptions)
-        val iter = transaction.iterator
-
-        val headIndex = iter.getHeadIndex(key) ?: (INITIAL_INDEX + 1)
-
-        for ((i, element) in elements.withIndex()) {
-            val newHeadIndex = headIndex - i - 1
-            val listKey = buildListKeyIndex(key, newHeadIndex)
-            transaction.set(listKey, element)
-        }
-
-        transaction.commit()
+        push(key, Direction.LEFT, *elements)
     }
 
     fun rpush(key: String, vararg elements: String) {
+        push(key, Direction.RIGHT, *elements)
+    }
+
+    private fun push(key: String, direction: Direction, vararg elements: String) {
         val writeOptions = WriteOptions()
         val transaction = db.underlying.beginTransaction(writeOptions)
         val iter = transaction.iterator
 
-        val tailIndex = iter.getTailIndex(key) ?: (INITIAL_INDEX - 1)
+        val index = when (direction) {
+            Direction.LEFT -> iter.getHeadIndex(key) ?: (INITIAL_INDEX + 1)
+            Direction.RIGHT -> iter.getTailIndex(key) ?: (INITIAL_INDEX - 1)
+        }
 
         for ((i, element) in elements.withIndex()) {
-            val newTailIndex = tailIndex + i + 1
-            val listKey = buildListKeyIndex(key, newTailIndex)
+            val newIndex = when (direction) {
+                Direction.LEFT -> index - i - 1
+                Direction.RIGHT -> index + i + 1
+            }
+            val listKey = buildListKeyIndex(key, newIndex)
             transaction.set(listKey, element)
         }
 
@@ -58,12 +56,21 @@ class KListRocks(private val db: KRocksDB) {
     }
 
     fun lpop(key: String, count: Long = 1): List<String> {
+        return pop(key, Direction.LEFT, count)
+    }
+
+    fun rpop(key: String, count: Long = 1): List<String> {
+        return pop(key, Direction.RIGHT, count)
+    }
+
+    private fun pop(key: String, direction: Direction, count: Long = 1): List<String> {
         val writeOptions = WriteOptions()
         val transaction = db.underlying.beginTransaction(writeOptions)
         val iter = transaction.iterator
 
-        val headIndex = iter.getHeadIndex(key) ?: return emptyList()
-        val listKey = buildListKeyIndex(key, headIndex)
+        val index = iter.getEndIndex(key, direction) ?: return emptyList()
+
+        val listKey = buildListKeyIndex(key, index)
         val listPrefix = buildListPrefix(key)
 
         iter.seek(listKey.toByteArray(KRocksDB.CHARSET))
@@ -74,7 +81,11 @@ class KListRocks(private val db: KRocksDB) {
             if (iter.isValid && iter.key().toString(KRocksDB.CHARSET).startsWith(listPrefix)) {
                 result.add(iter.value().toString(KRocksDB.CHARSET))
                 db.underlying.delete(iter.key())
-                iter.next()
+                if (direction == Direction.LEFT) {
+                    iter.next()
+                } else {
+                    iter.prev()
+                }
             } else {
                 break
             }
@@ -83,45 +94,26 @@ class KListRocks(private val db: KRocksDB) {
         return result
     }
 
-    fun rpop(key: String, count: Long = 1): List<String> {
-        val writeOptions = WriteOptions()
-        val transaction = db.underlying.beginTransaction(writeOptions)
-        val iter = transaction.iterator
-
-        val tailIndex = iter.getTailIndex(key) ?: return emptyList()
-        val listKey = buildListKeyIndex(key, tailIndex)
-        val listPrefix = buildListPrefix(key)
-
-        iter.seek(listKey.toByteArray(KRocksDB.CHARSET))
-
-        val result = mutableListOf<String>()
-
-        for (i in 0 until count) {
-            if (iter.isValid && iter.key().toString(KRocksDB.CHARSET).startsWith(listPrefix)) {
-                result.add(iter.value().toString(KRocksDB.CHARSET))
-                db.underlying.delete(iter.key())
-                iter.prev()
-            } else {
-                break
-            }
+    private fun RocksIterator.getEndIndex(key: String, direction: Direction): Long? {
+        return when (direction) {
+            Direction.LEFT -> this.getHeadIndex(key)
+            Direction.RIGHT -> this.getTailIndex(key)
         }
-
-        return result
     }
 
     private fun RocksIterator.getHeadIndex(key: String): Long? {
         val index = buildHeadIndexKey(key)
         this.seek(index.toByteArray(KRocksDB.CHARSET))
-        return if (this.isValid && this.key().toString(KRocksDB.CHARSET).startsWith(buildListPrefix(key))) {
-            getIndexFromPrefix(this.key().toString(KRocksDB.CHARSET))
-        } else {
-            null
-        }
+        return this.getIndex(key)
     }
 
     private fun RocksIterator.getTailIndex(key: String): Long? {
         val index = buildTailIndexKey(key)
         this.seekForPrev(index.toByteArray(KRocksDB.CHARSET))
+        return this.getIndex(key)
+    }
+
+    private fun RocksIterator.getIndex(key: String): Long? {
         return if (this.isValid && this.key().toString(KRocksDB.CHARSET).startsWith(buildListPrefix(key))) {
             getIndexFromPrefix(this.key().toString(KRocksDB.CHARSET))
         } else {
@@ -148,6 +140,10 @@ class KListRocks(private val db: KRocksDB) {
 
     private fun getIndexFromPrefix(keyWithPrefix: String): Long {
         return keyWithPrefix.split(":")[3].toLong(16)
+    }
+
+    enum class Direction {
+        LEFT, RIGHT
     }
 
     companion object {

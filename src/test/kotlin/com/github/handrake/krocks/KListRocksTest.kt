@@ -22,6 +22,7 @@ internal class KListRocksTest {
         klist.lpush("1", "4")
 
         assertEquals(3L, klist.llen("1"))
+        assertEquals(true, klist.exists("1"))
 
         val result = mutableListOf<String>()
 
@@ -31,6 +32,7 @@ internal class KListRocksTest {
 
         assertEquals(listOf("4", "3", "2"), result)
         assertEquals(emptyList<String>(), klist.rpop("1"))
+        assertEquals(false, klist.exists("1"))
     }
 
     @AfterEach
