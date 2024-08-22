@@ -1,5 +1,6 @@
 package com.github.handrake.krocks
 
+import com.github.handrake.krocks.IteratorExtensions.isValidPrefix
 import com.github.handrake.krocks.TransactionDBExtensions.set
 import org.rocksdb.RocksIterator
 import org.rocksdb.WriteOptions
@@ -11,7 +12,7 @@ class KListRocks(private val db: KRocksDB) {
 
         iter.seek(listKey.toByteArray(KRocksDB.CHARSET))
 
-        return iter.isValid && iter.key().toString(KRocksDB.CHARSET).startsWith(listKey)
+        return iter.isValidPrefix(listKey)
     }
 
     fun llen(key: String): Long {
@@ -78,7 +79,7 @@ class KListRocks(private val db: KRocksDB) {
         val result = mutableListOf<String>()
 
         for (i in 0 until count) {
-            if (iter.isValid && iter.key().toString(KRocksDB.CHARSET).startsWith(listPrefix)) {
+            if (iter.isValidPrefix(listPrefix)) {
                 result.add(iter.value().toString(KRocksDB.CHARSET))
                 db.underlying.delete(iter.key())
                 if (direction == Direction.LEFT) {
@@ -114,7 +115,7 @@ class KListRocks(private val db: KRocksDB) {
     }
 
     private fun RocksIterator.getIndex(key: String): Long? {
-        return if (this.isValid && this.key().toString(KRocksDB.CHARSET).startsWith(buildListPrefix(key))) {
+        return if (this.isValidPrefix(buildListPrefix(key))) {
             getIndexFromPrefix(this.key().toString(KRocksDB.CHARSET))
         } else {
             null

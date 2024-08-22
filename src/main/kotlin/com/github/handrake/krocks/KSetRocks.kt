@@ -1,5 +1,7 @@
 package com.github.handrake.krocks
 
+import com.github.handrake.krocks.IteratorExtensions.isValidKey
+import com.github.handrake.krocks.IteratorExtensions.isValidPrefix
 import com.github.handrake.krocks.TransactionDBExtensions.decr
 import com.github.handrake.krocks.TransactionDBExtensions.del
 import com.github.handrake.krocks.TransactionDBExtensions.incr
@@ -57,7 +59,7 @@ class KSetRocks(private val db: KRocksDB) {
 
         this.seek(buildSetKey(key, member).toByteArray(KRocksDB.CHARSET))
 
-        return this.isValid && this.key().toString(KRocksDB.CHARSET) == setKey
+        return this.isValidKey(setKey)
     }
 
     fun scard(key: String): Long {
@@ -145,13 +147,13 @@ class KSetRocks(private val db: KRocksDB) {
     }
 
     fun RocksIterator.smembers(key: String): Set<String> {
-        val prefix= buildSetPrefix(key)
+        val prefix = buildSetPrefix(key)
 
         this.seek(prefix.toByteArray(KRocksDB.CHARSET))
 
         val result = mutableSetOf<String>()
 
-        while (this.isValid && this.key().toString(KRocksDB.CHARSET).startsWith(prefix)) {
+        while (this.isValidPrefix(prefix)) {
             result.add(getSetValue(this.key().toString(KRocksDB.CHARSET)))
             this.next()
         }
