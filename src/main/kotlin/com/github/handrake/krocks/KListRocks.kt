@@ -1,6 +1,8 @@
 package com.github.handrake.krocks
 
 import com.github.handrake.krocks.IteratorExtensions.isValidPrefix
+import com.github.handrake.krocks.StringExtensions.toB
+import com.github.handrake.krocks.StringExtensions.toS
 import com.github.handrake.krocks.TransactionDBExtensions.set
 import org.rocksdb.RocksIterator
 import org.rocksdb.WriteOptions
@@ -10,7 +12,7 @@ class KListRocks(private val db: KRocksDB) {
         val iter = db.underlying.newIterator()
         val listKey = buildListPrefix(key)
 
-        iter.seek(listKey.toByteArray(KRocksDB.CHARSET))
+        iter.seek(listKey.toB())
 
         return iter.isValidPrefix(listKey)
     }
@@ -74,13 +76,13 @@ class KListRocks(private val db: KRocksDB) {
         val listKey = buildListKeyIndex(key, index)
         val listPrefix = buildListPrefix(key)
 
-        iter.seek(listKey.toByteArray(KRocksDB.CHARSET))
+        iter.seek(listKey.toB())
 
         val result = mutableListOf<String>()
 
         for (i in 0 until count) {
             if (iter.isValidPrefix(listPrefix)) {
-                result.add(iter.value().toString(KRocksDB.CHARSET))
+                result.add(iter.value().toS())
                 db.underlying.delete(iter.key())
                 if (direction == Direction.LEFT) {
                     iter.next()
@@ -104,19 +106,19 @@ class KListRocks(private val db: KRocksDB) {
 
     private fun RocksIterator.getHeadIndex(key: String): Long? {
         val index = buildHeadIndexKey(key)
-        this.seek(index.toByteArray(KRocksDB.CHARSET))
+        this.seek(index.toB())
         return this.getIndex(key)
     }
 
     private fun RocksIterator.getTailIndex(key: String): Long? {
         val index = buildTailIndexKey(key)
-        this.seekForPrev(index.toByteArray(KRocksDB.CHARSET))
+        this.seekForPrev(index.toB())
         return this.getIndex(key)
     }
 
     private fun RocksIterator.getIndex(key: String): Long? {
         return if (this.isValidPrefix(buildListPrefix(key))) {
-            getIndexFromPrefix(this.key().toString(KRocksDB.CHARSET))
+            getIndexFromPrefix(this.key().toS())
         } else {
             null
         }

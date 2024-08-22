@@ -1,5 +1,7 @@
 package com.github.handrake.krocks
 
+import com.github.handrake.krocks.StringExtensions.toB
+import com.github.handrake.krocks.StringExtensions.toS
 import org.rocksdb.OptimisticTransactionDB
 import org.rocksdb.Options
 import org.rocksdb.ReadOptions
@@ -18,17 +20,17 @@ class KRocksDB(private val path: String) {
     }
 
     fun set(key: String, value: String) {
-        underlying.put(key.toByteArray(CHARSET), value.toByteArray(CHARSET))
+        underlying.put(key.toB(), value.toB())
     }
 
     fun get(key: String): String? {
         return runCatching {
-            underlying.get(key.toByteArray(CHARSET)).toString(CHARSET)
+            underlying.get(key.toB()).toS()
         }.getOrNull()
     }
 
     fun del(key: String) {
-        underlying.delete(key.toByteArray(CHARSET))
+        underlying.delete(key.toB())
     }
 
     fun incr(key: String): Long {
@@ -49,9 +51,5 @@ class KRocksDB(private val path: String) {
 
     fun destroy() {
         RocksDB.destroyDB(path, options)
-    }
-
-    companion object {
-        val CHARSET = Charsets.UTF_8
     }
 }

@@ -2,6 +2,8 @@ package com.github.handrake.krocks
 
 import com.github.handrake.krocks.IteratorExtensions.isValidKey
 import com.github.handrake.krocks.IteratorExtensions.isValidPrefix
+import com.github.handrake.krocks.StringExtensions.toB
+import com.github.handrake.krocks.StringExtensions.toS
 import com.github.handrake.krocks.TransactionDBExtensions.decr
 import com.github.handrake.krocks.TransactionDBExtensions.del
 import com.github.handrake.krocks.TransactionDBExtensions.incr
@@ -57,7 +59,7 @@ class KSetRocks(private val db: KRocksDB) {
     fun RocksIterator.sismember(key: String, member: String): Boolean {
         val setKey = buildSetKey(key, member)
 
-        this.seek(buildSetKey(key, member).toByteArray(KRocksDB.CHARSET))
+        this.seek(buildSetKey(key, member).toB())
 
         return this.isValidKey(setKey)
     }
@@ -149,12 +151,12 @@ class KSetRocks(private val db: KRocksDB) {
     fun RocksIterator.smembers(key: String): Set<String> {
         val prefix = buildSetPrefix(key)
 
-        this.seek(prefix.toByteArray(KRocksDB.CHARSET))
+        this.seek(prefix.toB())
 
         val result = mutableSetOf<String>()
 
         while (this.isValidPrefix(prefix)) {
-            result.add(getSetValue(this.key().toString(KRocksDB.CHARSET)))
+            result.add(getSetValue(this.key().toS()))
             this.next()
         }
 
