@@ -56,6 +56,30 @@ internal class KSetRocksTest {
         assertEquals((0..30).toSet(), result)
     }
 
+    @Test
+    fun testSDiff() {
+        kset.sadd("s1", "1", "2", "3", "4")
+        kset.sadd("s2", "2", "3", "5")
+
+        assertEquals(setOf("1", "4"), kset.sdiff("s1", "s2"))
+    }
+
+    @Test
+    fun testSInter() {
+        kset.sadd("s1", "1", "2", "3", "4")
+        kset.sadd("s2", "2", "3", "5")
+
+        assertEquals(setOf("2", "3"), kset.sinter("s1", "s2"))
+    }
+
+    @Test
+    fun testSMembers() {
+        kset.sadd("s1", "1", "2", "3")
+        kset.sadd("s1", "-1", "-2", "-3")
+
+        assertEquals(setOf("-3", "-2", "-1", "1", "2", "3"), kset.smembers("s1"))
+    }
+
     @AfterEach
     fun tearDown() {
         store.close()
