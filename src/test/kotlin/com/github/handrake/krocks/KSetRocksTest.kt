@@ -1,17 +1,15 @@
 package com.github.handrake.krocks
 
-import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class KSetRocksTest {
     private lateinit var store: KRocksDB
     private lateinit var kset: KSetRocks
 
-    @BeforeAll
+    @BeforeEach
     fun setUp() {
         store = KRocksDB("./test-db")
         kset = KSetRocks(store)
@@ -58,7 +56,7 @@ internal class KSetRocksTest {
         assertEquals((0..30).toSet(), result)
     }
 
-    @AfterAll
+    @AfterEach
     fun tearDown() {
         store.close()
         store.destroy()
