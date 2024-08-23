@@ -4,9 +4,7 @@ import com.github.handrake.krocks.StringExtensions.toB
 import com.github.handrake.krocks.StringExtensions.toS
 import org.rocksdb.OptimisticTransactionDB
 import org.rocksdb.Options
-import org.rocksdb.ReadOptions
 import org.rocksdb.RocksDB
-import org.rocksdb.Transaction
 
 class KRocksDB(private val path: String) {
     val underlying: OptimisticTransactionDB
