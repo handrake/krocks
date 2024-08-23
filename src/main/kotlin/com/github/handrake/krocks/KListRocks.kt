@@ -28,6 +28,24 @@ class KListRocks(private val db: KRocksDB) {
         return tailIndex - headIndex + 1
     }
 
+    fun lindex(key: String, index: Long): String {
+        val iter = db.underlying.newIterator()
+
+        val listIndex = if (index >= 0) {
+            iter.getHeadIndex(key)?.let { it + index }
+        } else {
+            iter.getTailIndex(key)?.let { it + index + 1 }
+        } ?: return ""
+
+        val listKey = buildListKeyIndex(key, listIndex)
+
+        iter.seek(listKey.toB())
+
+        return if (iter.isValidPrefix(listKey)) {
+            iter.value().toS()
+        } else ""
+    }
+
     fun lpush(key: String, vararg elements: String) {
         push(key, Direction.LEFT, *elements)
     }
