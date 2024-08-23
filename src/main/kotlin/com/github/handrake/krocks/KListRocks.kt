@@ -2,8 +2,8 @@ package com.github.handrake.krocks
 
 import com.github.handrake.krocks.IteratorExtensions.get
 import com.github.handrake.krocks.IteratorExtensions.isValidPrefix
-import com.github.handrake.krocks.StringExtensions.toB
-import com.github.handrake.krocks.StringExtensions.toS
+import com.github.handrake.krocks.ByteArrayExtensions.toB
+import com.github.handrake.krocks.ByteArrayExtensions.toS
 import com.github.handrake.krocks.TransactionDBExtensions.set
 import org.rocksdb.RocksIterator
 import org.rocksdb.WriteOptions

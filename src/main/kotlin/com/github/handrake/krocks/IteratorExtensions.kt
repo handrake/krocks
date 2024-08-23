@@ -1,7 +1,7 @@
 package com.github.handrake.krocks
 
-import com.github.handrake.krocks.StringExtensions.toB
-import com.github.handrake.krocks.StringExtensions.toS
+import com.github.handrake.krocks.ByteArrayExtensions.toB
+import com.github.handrake.krocks.ByteArrayExtensions.toS
 import org.rocksdb.RocksIterator
 
 object IteratorExtensions {

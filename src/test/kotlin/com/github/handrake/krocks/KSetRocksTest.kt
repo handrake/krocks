@@ -1,9 +1,11 @@
 package com.github.handrake.krocks
 
+import com.github.handrake.krocks.ByteArrayExtensions.toB
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.rocksdb.WriteOptions
 
 internal class KSetRocksTest {
     private lateinit var store: KRocksDB
@@ -22,10 +24,12 @@ internal class KSetRocksTest {
         kset.sadd(key, member)
 
         assertEquals(true, kset.sismember(key, member))
+        assertEquals(1L, kset.scard(key))
 
         kset.srem(key, member)
 
         assertEquals(false, kset.sismember(key, member))
+        assertEquals(0L, kset.scard(key))
     }
 
     @Test

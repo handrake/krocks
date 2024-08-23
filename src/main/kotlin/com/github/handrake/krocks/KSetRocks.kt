@@ -2,13 +2,14 @@ package com.github.handrake.krocks
 
 import com.github.handrake.krocks.IteratorExtensions.isValidKey
 import com.github.handrake.krocks.IteratorExtensions.isValidPrefix
-import com.github.handrake.krocks.StringExtensions.toB
-import com.github.handrake.krocks.StringExtensions.toS
+import com.github.handrake.krocks.ByteArrayExtensions.toB
+import com.github.handrake.krocks.ByteArrayExtensions.toL
+import com.github.handrake.krocks.ByteArrayExtensions.toS
 import com.github.handrake.krocks.TransactionDBExtensions.decr
 import com.github.handrake.krocks.TransactionDBExtensions.del
+import com.github.handrake.krocks.TransactionDBExtensions.get
 import com.github.handrake.krocks.TransactionDBExtensions.incr
 import com.github.handrake.krocks.TransactionDBExtensions.set
-import com.github.handrake.krocks.TransactionDBExtensions.get
 import org.rocksdb.RocksIterator
 import org.rocksdb.Transaction
 import org.rocksdb.WriteOptions
@@ -19,18 +20,18 @@ class KSetRocks(private val db: KRocksDB) {
         val writeOptions = WriteOptions()
         val transaction = db.underlying.beginTransaction(writeOptions)
 
-        transaction.sadd(key, *members)
+        sadd(transaction, key, *members)
 
         transaction.commit()
     }
 
-    fun Transaction.sadd(key: String, vararg members: String) {
+    fun sadd(transaction: Transaction, key: String, vararg members: String) {
         for (member in members) {
-            if (!this.sismember(key, member)) {
+            if (!sismember(transaction, key, member)) {
                 val setKey = buildSetKey(key, member)
 
-                this.set(setKey, "1")
-                this.incr(buildSetLenKey(key))
+                transaction.set(setKey, "1")
+                transaction.incr(buildSetLenKey(key))
             }
         }
     }
@@ -39,7 +40,7 @@ class KSetRocks(private val db: KRocksDB) {
         val writeOptions = WriteOptions()
         val transaction = db.underlying.beginTransaction(writeOptions)
 
-        if (transaction.sismember(key, member)) {
+        if (sismember(transaction, key, member)) {
             val setKey = buildSetKey(key, member)
             transaction.del(setKey)
             transaction.decr(buildSetLenKey(key))
@@ -52,20 +53,22 @@ class KSetRocks(private val db: KRocksDB) {
         return db.get(buildSetKey(key, member)) != null
     }
 
-    fun Transaction.sismember(key: String, member: String): Boolean {
-        return this.get(buildSetKey(key, member)) != null
+    fun sismember(transaction: Transaction, key: String, member: String): Boolean {
+        return transaction.get(buildSetKey(key, member)) != null
     }
 
-    fun RocksIterator.sismember(key: String, member: String): Boolean {
+    fun sismember(iter: RocksIterator, key: String, member: String): Boolean {
         val setKey = buildSetKey(key, member)
 
-        this.seek(buildSetKey(key, member).toB())
+        iter.seek(buildSetKey(key, member).toB())
 
-        return this.isValidKey(setKey)
+        return iter.isValidKey(setKey)
     }
 
     fun scard(key: String): Long {
-        return db.get(buildSetLenKey(key))?.toLongOrNull() ?: 0L
+        return runCatching {
+            db.underlying.get(buildSetLenKey(key).toB())
+        }.getOrNull()?.toL() ?: 0L
     }
 
     fun sdiff(vararg keys: String): Set<String> {
@@ -75,12 +78,12 @@ class KSetRocks(private val db: KRocksDB) {
 
         val iter = db.underlying.newIterator()
 
-        return iter.sdiff(*keys)
+        return sdiff(iter, *keys)
     }
 
-    fun RocksIterator.sdiff(vararg keys: String): Set<String> {
-        return keys.drop(1).fold(this.smembers(keys.first())) { acc, key ->
-            acc - this.smembers(key)
+    fun sdiff(iter: RocksIterator, vararg keys: String): Set<String> {
+        return keys.drop(1).fold(smembers(iter, keys.first())) { acc, key ->
+            acc - smembers(iter, key)
         }
     }
 
@@ -89,9 +92,9 @@ class KSetRocks(private val db: KRocksDB) {
         val transaction = db.underlying.beginTransaction(writeOptions)
 
         val iter = db.underlying.newIterator()
-        val diff = iter.sdiff(*keys).toTypedArray()
+        val diff = sdiff(iter, *keys).toTypedArray()
 
-        transaction.sadd(destination, *diff)
+        sadd(transaction, destination, *diff)
 
         transaction.commit()
 
@@ -105,8 +108,8 @@ class KSetRocks(private val db: KRocksDB) {
 
         val iter = db.underlying.newIterator()
 
-        return keys.drop(1).fold(iter.smembers(keys.first())) { acc, key ->
-            acc.intersect(iter.smembers(key))
+        return keys.drop(1).fold(smembers(iter, keys.first())) { acc, key ->
+            acc.intersect(smembers(iter, key))
         }
     }
 
@@ -117,14 +120,14 @@ class KSetRocks(private val db: KRocksDB) {
 
         val iter = db.underlying.newIterator()
 
-        return keys.drop(1).fold(iter.smembers(keys.first())) { acc, key ->
-            acc.union(iter.smembers(key))
+        return keys.drop(1).fold(smembers(iter, keys.first())) { acc, key ->
+            acc.union(smembers(iter, key))
         }
     }
 
-    fun RocksIterator.sunion(vararg keys: String): Set<String> {
-        return keys.drop(1).fold(this.smembers(keys.first())) { acc, key ->
-            acc.union(this.smembers(key))
+    fun sunion(iter: RocksIterator, vararg keys: String): Set<String> {
+        return keys.drop(1).fold(smembers(iter, keys.first())) { acc, key ->
+            acc.union(smembers(iter, key))
         }
     }
 
@@ -133,9 +136,9 @@ class KSetRocks(private val db: KRocksDB) {
         val transaction = db.underlying.beginTransaction(writeOptions)
 
         val iter = db.underlying.newIterator()
-        val union = iter.sunion(*keys).toTypedArray()
+        val union = sunion(iter, *keys).toTypedArray()
 
-        transaction.sadd(destination, *union)
+        sadd(transaction, destination, *union)
 
         transaction.commit()
 
@@ -145,19 +148,19 @@ class KSetRocks(private val db: KRocksDB) {
     fun smembers(key: String): Set<String> {
         val iter = db.underlying.newIterator()
 
-        return iter.smembers(key)
+        return smembers(iter, key)
     }
 
-    fun RocksIterator.smembers(key: String): Set<String> {
+    fun smembers(iter: RocksIterator, key: String): Set<String> {
         val prefix = buildSetPrefix(key)
 
-        this.seek(prefix.toB())
+        iter.seek(prefix.toB())
 
         val result = mutableSetOf<String>()
 
-        while (this.isValidPrefix(prefix)) {
-            result.add(getSetValue(this.key().toS()))
-            this.next()
+        while (iter.isValidPrefix(prefix)) {
+            result.add(getSetValue(iter.key().toS()))
+            iter.next()
         }
 
         return result

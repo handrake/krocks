@@ -1,7 +1,7 @@
 package com.github.handrake.krocks
 
-import com.github.handrake.krocks.StringExtensions.toB
-import com.github.handrake.krocks.StringExtensions.toS
+import com.github.handrake.krocks.ByteArrayExtensions.toB
+import com.github.handrake.krocks.ByteArrayExtensions.toS
 import org.rocksdb.ReadOptions
 import org.rocksdb.Transaction
 
@@ -21,15 +21,11 @@ object TransactionDBExtensions {
         this.delete(key.toB())
     }
 
-    fun Transaction.incr(key: String): Long {
-        val newValue = (this.get(key)?.toLongOrNull() ?: 0L) + 1
-        this.set(key, newValue.toString())
-        return newValue
+    fun Transaction.incr(key: String) {
+        this.merge(key.toB(), (1L).toB())
     }
 
-    fun Transaction.decr(key: String): Long {
-        val newValue = (this.get(key)?.toLongOrNull() ?: 0L) - 1
-        this.set(key, newValue.toString())
-        return newValue
+    fun Transaction.decr(key: String) {
+        this.merge(key.toB(), (-1L).toB())
     }
 }
