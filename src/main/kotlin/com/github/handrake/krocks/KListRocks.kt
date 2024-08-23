@@ -1,5 +1,6 @@
 package com.github.handrake.krocks
 
+import com.github.handrake.krocks.IteratorExtensions.get
 import com.github.handrake.krocks.IteratorExtensions.isValidPrefix
 import com.github.handrake.krocks.StringExtensions.toB
 import com.github.handrake.krocks.StringExtensions.toS
@@ -39,11 +40,7 @@ class KListRocks(private val db: KRocksDB) {
 
         val listKey = buildListKeyIndex(key, listIndex)
 
-        iter.seek(listKey.toB())
-
-        return if (iter.isValidPrefix(listKey)) {
-            iter.value().toS()
-        } else ""
+        return iter.get(listKey)
     }
 
     fun lpush(key: String, vararg elements: String) {
