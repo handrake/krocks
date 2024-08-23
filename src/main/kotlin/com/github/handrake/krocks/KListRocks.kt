@@ -98,7 +98,7 @@ class KListRocks(private val db: KRocksDB) {
         for (i in 0 until count) {
             if (iter.isValidPrefix(listPrefix)) {
                 result.add(iter.value().toS())
-                db.underlying.delete(iter.key())
+                transaction.delete(iter.key())
                 if (direction == Direction.LEFT) {
                     iter.next()
                 } else {
@@ -108,6 +108,8 @@ class KListRocks(private val db: KRocksDB) {
                 break
             }
         }
+
+        transaction.commit()
 
         return result
     }
