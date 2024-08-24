@@ -1,6 +1,6 @@
-# KRocks: Simple redis-like embedded key-value store implemented on RocksDB
+# KRocks: Simple redis-like embedded key-value store
 
-Currently, Redis String, List, and Set are implemented for the following commands.
+Currently, Redis String, List, and Set are implemented for the following commands. All commands are atomic operations using [RocksDB OptimisticTransactionDB](https://github.com/facebook/rocksdb/wiki/Transactions).
 
 ## String
 - GET
