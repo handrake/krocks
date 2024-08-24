@@ -4,8 +4,6 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 object ByteArrayExtensions {
-    val CHARSET = Charsets.UTF_8
-
     fun String.toB(): ByteArray = this.toByteArray(CHARSET)
     fun ByteArray.toS(): String = this.toString(CHARSET)
 
@@ -21,4 +19,6 @@ object ByteArrayExtensions {
         buffer.flip()
         return buffer.getLong()
     }
+
+    private val CHARSET = Charsets.UTF_8
 }
